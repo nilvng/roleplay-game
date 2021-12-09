@@ -3,10 +3,17 @@ const app = express();
 const http = require('http');
 const esbuild = require('esbuild');
 const fs = require('fs')
+
 const server = http.createServer(app)
 
-const {Server} = require("socket.io")
-const io = new Server(server)
+const io = require("socket.io")(server, {
+    cors: {
+        origin: "http://localhost:9091",
+        methods: ["GET", "POST"]
+    },
+    rejectUnauthorized: true,
+    allowEIO3: true
+    });
 
 function buildGame(){
     console.log("build game")
@@ -34,7 +41,7 @@ function buildGame(){
 }
 app.use("/dist",express.static("./dist/"))
 
-app.get('/', (req,res) => {
+app.get('/game', (req,res) => {
     console.log("get file")
     buildGame()
     res.sendFile(__dirname + '/index.html')
@@ -46,6 +53,7 @@ var clients = {};
 
 io.on("connection", (socket) => {
     console.log("User connected")
+    io.emit("user connected")
 
     socket.on("create", data => {
 
@@ -59,9 +67,12 @@ io.on("connection", (socket) => {
             clients
         }
         // respond back to user
-        socket.emit('update',payload)
+        io.emit('update',payload)
         })
     })
 
+
+
 const PORT = process.env.PORT || 9091
+console.log("Port is: " + PORT)
 server.listen(PORT, () => console.log(`Listening ... on ${PORT}`));
